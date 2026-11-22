@@ -1,0 +1,28 @@
+
+:host{display:block}
+.plot-cover.no-photo{position:relative;isolation:isolate;background:#78927d;overflow:hidden}
+.plot-scenery{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:linear-gradient(168deg,#badacf 5%,#d5e5c5 51%,#8aa984 100%)}
+.plot-scenery[data-theme=amanecer]{background:linear-gradient(166deg,#f5c79d 0%,#eddfbe 41%,#9eb999 100%)}
+.plot-scenery[data-theme=terrazas]{background:linear-gradient(160deg,#9fbfd2 0%,#e2e8d5 48%,#8ea880 100%)}
+.plot-scenery[data-theme=bosque]{background:linear-gradient(170deg,#9fb5a6,#d6e5c9 51%,#638e70)}
+.scene-glow{position:absolute;top:15%;right:20%;width:70px;height:70px;border-radius:50%;background:#fff2d7;box-shadow:0 0 0 12px #fff6db23,0 0 50px #f8f4cf87}
+.plot-scenery[data-theme=terrazas] .scene-glow{opacity:.5}.plot-scenery[data-theme=bosque] .scene-glow{opacity:.35}
+.scene-cloud{position:absolute;width:150px;height:32px;border-radius:60px;background:#ffffff56;filter:blur(11px)}.scene-cloud-one{left:12%;top:23%}.scene-cloud-two{left:54%;top:38%;transform:scale(.7)}
+.scene-hill{position:absolute;width:150%;height:100%;border-radius:50% 50% 0 0;transform:rotate(-10deg);transform-origin:center bottom}
+.scene-hill-back{bottom:-75%;left:-12%;background:#7ea18a}.scene-hill-front{bottom:-91%;right:-30%;background:#3b725c;transform:rotate(13deg)}
+.plot-scenery[data-theme=amanecer] .scene-hill-back{background:#b1af7a}.plot-scenery[data-theme=amanecer] .scene-hill-front{background:#627e52}
+.plot-scenery[data-theme=terrazas] .scene-hill-back{background:#96ae87}.plot-scenery[data-theme=terrazas] .scene-hill-front{background:#6b9666}
+.plot-scenery[data-theme=bosque] .scene-hill-back{background:#789780}.plot-scenery[data-theme=bosque] .scene-hill-front{background:#35644c}
+.scene-rows{position:absolute;left:-15%;bottom:-118%;width:135%;height:165%;border-radius:50%;background:repeating-radial-gradient(ellipse at 40% 75%,transparent 0 16px,#cfe3a350 17px 18px,transparent 19px 32px);transform:rotate(-8deg)}
+.scene-ornament{position:absolute;right:19px;top:18px;font-size:27px;opacity:.5;color:#fff8d7}
+.plot-cover.no-photo>.badge,.plot-cover.no-photo>.photo-action{z-index:3}
+@media(prefers-reduced-motion:no-preference){.scene-cloud-one{animation:plot-drift 21s ease-in-out infinite alternate}.scene-cloud-two{animation:plot-drift 28s ease-in-out infinite alternate-reverse}@keyframes plot-drift{to{transform:translateX(35px)}}}
+
+/* Confirmación propia de AgroConecta, sin diálogos nativos */
+.plot-confirm-backdrop{position:fixed;inset:0;z-index:1050;background:#1e2825a8;display:grid;place-items:center;padding:20px;backdrop-filter:blur(4px)}
+.plot-confirm-dialog{max-width:450px;width:100%;background:#fffcf6;border:1px solid #e7e0d2;border-radius:20px;box-shadow:0 24px 80px #13291c40;padding:32px;color:#253d2b}
+.plot-confirm-icon{display:grid;place-items:center;width:50px;height:50px;border-radius:14px;background:#e8f1e5;color:#326643;margin-bottom:18px}
+.plot-confirm-dialog h2{font-size:1.7rem;letter-spacing:-.04em;margin:0 0 9px}
+.plot-confirm-dialog p{font-size:.85rem;line-height:1.8;color:#6a7d6b;margin-bottom:27px}
+.plot-confirm-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px}
+@media(max-width:480px){.plot-confirm-dialog{padding:24px}.plot-confirm-actions .button{flex:1}}
