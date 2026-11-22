@@ -1,0 +1,22 @@
+node_modules/
+dist/
+.angular/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.uv-cache/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+Thumbs.db
+coverage/
+.cache/
+backend/data/
+backend/.test-data/
+work/
+
+# Solo para pruebas locales; no subir a GitHub
+Iniciar_AgroConecta.bat
