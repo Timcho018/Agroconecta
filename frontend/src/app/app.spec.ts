@@ -75,7 +75,7 @@ describe('Signal Forms reutilizables', () => {
 
 describe('Calendario y exportación', () => {
   it('incluye el día bisiesto y cambia de año correctamente', () => {
-    TestBed.configureTestingModule({ providers: [{ provide: Api, useValue: { list: async () => [] } }] });
+    TestBed.configureTestingModule({ providers: [{ provide: Api, useValue: { list: async () => [], peek: () => null } }] });
     const page = TestBed.createComponent(Planning).componentInstance;
     page.month.set('2028-02');
     expect(page.days().filter(day => day.current)).toHaveLength(29);
