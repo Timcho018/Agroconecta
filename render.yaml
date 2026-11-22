@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: agroconecta-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci --include=dev && npm run build
+    staticPublishPath: dist/agroconecta/browser
+    envVars:
+      - key: NODE_VERSION
+        value: 24.22.1
+      - key: SKIP_INSTALL_DEPS
+        value: "true"
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://agroconecta-lj1h.onrender.com/api/*
+      - type: rewrite
+        source: /*
+        destination: /index.html
