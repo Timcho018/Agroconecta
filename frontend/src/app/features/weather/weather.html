@@ -1,0 +1,105 @@
+@if(!compact()){
+  <header class="sky-page">
+    <div>
+      <h1>Clima y pronóstico<span class="title-period">.</span></h1>
+      <p>Conoce el tiempo de tu parcela y organiza tus próximos días.</p>
+    </div>
+  </header>
+}
+<section class="almanac" [class.mini]="compact()" aria-label="Pronóstico por parcela">
+  <header class="weather-topbar">
+    <div class="section-identity">
+      <span class="section-eyebrow">{{compact() ? 'EL TIEMPO EN TU PARCELA' : 'PANORAMA METEOROLÓGICO'}}</span>
+      <div class="section-title-row">
+        <h2>{{compact() ? 'Así está tu campo' : 'Una semana, a tu ritmo'}}</h2>
+        @if(!compact()){<span class="week-chip"><span></span> Próximos 7 días</span>}
+      </div>
+    </div>
+    <div class="section-tools">
+      @if(plots().length){
+        <label class="site">
+          <span>PARCELA</span>
+          <span class="selector-wrap"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 21s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12Z" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="9" r="2.5" fill="none" stroke="currentColor" stroke-width="1.7"/></svg><select [value]="selected()" (change)="select($any($event.target).value)" aria-label="Elegir parcela">
+            @for(p of plots();track p.id){<option [value]="p.id">{{p.name}}</option>}
+          </select><svg class="chevron" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>
+        </label>
+        @if(!compact() && selectedPlot(); as plot){
+          <div class="site-location" [title]="plot.location || 'Ubicación de la parcela'">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>
+            <span>{{plot.location || 'Ubicación de la parcela'}}</span>
+            @if(hasCoordinates()){<a [href]="mapUrl()" target="_blank" rel="noopener noreferrer" [attr.aria-label]="'Abrir ubicación de '+plot.name+' en OpenStreetMap'">Mapa ↗</a>}
+          </div>
+        }
+      }
+      @if(compact()){<a class="more-link" routerLink="/clima">Ver pronóstico <span aria-hidden="true">↗</span></a>}
+    </div>
+  </header>
+  @if(loading()){<p class="state" role="status">Consultando el pronóstico de tu parcela…</p>}
+  @if(error()){<div class="state"><p class="error" role="alert">{{error()}}</p><button class="button ghost" (click)="selected() ? select(selected()) : ngOnInit()">Volver a intentar</button></div>}
+  @if(!loading() && !error() && !plots().length){
+    <div class="empty-weather"><div class="empty-picture"></div><div class="empty-text"><span class="section-eyebrow">TU PRIMER PRONÓSTICO</span><h3>El cielo de tu parcela te espera.</h3><p>Registra una parcela con su ubicación para consultar temperatura y lluvia.</p><a routerLink="/parcelas">Registrar parcela <span aria-hidden="true">↗</span></a></div></div>
+  }
+  @if(forecast(); as weather){
+    @if(activeDay(weather.days); as first){
+      <div [class]="'forecast-focus '+sky(first.code).tone">
+        <div class="forecast-copy">
+          <div class="focus-topline"><span class="focus-date">{{first.date | date:'EEE d MMM':'':'es'}}</span></div>
+          <div class="focus-content">
+            <h3>{{sky(first.code).label}}</h3>
+            <div class="temperature-row" aria-label="Temperaturas previstas">
+              <div class="temperature-main"><span>Máxima</span><strong>{{(first.max | number:'1.0-0') ?? '—'}}<sup>°</sup></strong></div>
+              <span class="temperature-divider" aria-hidden="true"></span>
+              <div class="temperature-main secondary"><span>Mínima</span><strong>{{(first.min | number:'1.0-0') ?? '—'}}<sup>°</sup></strong></div>
+            </div>
+          </div>
+          <div class="focus-stats">
+            <div class="stat-block"><span><strong>{{first.rain_probability === null ? '—' : first.rain_probability + '%'}}</strong><small>prob. lluvia</small></span></div>
+            <div class="stat-block"><span><strong>{{first.rain_mm ?? '—'}} mm</strong><small>precipitación</small></span></div>
+          </div>
+        </div>
+        <div class="forecast-scene">
+          <img class="scene-image" [src]="sceneSrc(first.code)" [alt]="'Paisaje agrícola ilustrado: '+sky(first.code).label" decoding="async" />
+          @if(sky(first.code).tone === 'wet'){<div class="scene-rain" aria-hidden="true"></div>}
+        </div>
+      </div>
+      <div class="forecast-days-wrap">
+        <div class="week-heading"><div><span class="section-eyebrow">PRONÓSTICO DIARIO</span><h3>{{compact() ? 'Próximos días' : 'Tus próximos 7 días'}}</h3></div><span class="week-subtitle">{{compact() ? 'Selecciona un día' : 'Selecciona un día para ver su pronóstico arriba'}} <span aria-hidden="true">↗</span></span></div>
+        <div class="days" aria-label="Pronóstico diario. Selecciona un día para ver sus detalles">
+          @for(day of weather.days.slice(0,compact()?3:7);track day.date;let i=$index){
+            <button class="day-tile" type="button" [class.active]="focusedIndex()===i" [attr.aria-pressed]="focusedIndex()===i" (click)="focusedIndex.set(i)">
+              <span class="tile-top"><time [attr.datetime]="day.date">{{day.date | date:'EEE d':'':'es'}}</time>@if(i === 0){<span class="today-dot">HOY</span>}</span>
+              <span class="tile-weather-icon" [class]="'tile-weather-icon '+sky(day.code).tone" role="img" [attr.aria-label]="sky(day.code).label">
+                @if(sky(day.code).tone==='clear'){
+                  <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="9" fill="#F8C66C" stroke="#CB954D" stroke-width="2"/><g stroke="#D5A453" stroke-width="2.5" stroke-linecap="round"><path d="M24 3v7m0 28v7M3 24h7m28 0h7M9 9l5 5m20 20 5 5M39 9l-5 5M14 34l-5 5"/></g></svg>
+                }@else if(sky(day.code).tone==='mixed'){
+                  <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="18" cy="17" r="8" fill="#F8C66C"/><path d="M10 35h27a7.5 7.5 0 0 0-.4-15 10.5 10.5 0 0 0-20-1.4A8.3 8.3 0 0 0 10 35Z" fill="#D6E4E5" stroke="#86A4AB" stroke-width="1.7"/></svg>
+                }@else if(sky(day.code).tone==='wet'){
+                  <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M11 28h26a8 8 0 0 0-.7-16 10.5 10.5 0 0 0-20 1.6A7.5 7.5 0 0 0 11 28Z" fill="#CADCE3" stroke="#729BA9" stroke-width="1.7"/><path d="m15 34-2 6m13-6-2 6m13-6-2 6" stroke="#4E93B8" stroke-width="2.4" stroke-linecap="round"/></svg>
+                }@else{
+                  <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M11 33h26a8 8 0 0 0-1-16 10.5 10.5 0 0 0-20 1.6A7.5 7.5 0 0 0 11 33Z" fill="#D7E4E6" stroke="#8AA7AB" stroke-width="1.7"/></svg>
+                }
+              </span>
+              <span class="tile-condition">{{sky(day.code).label}}</span>
+              <span class="tile-temps"><strong>{{(day.max | number:'1.0-0') ?? '—'}}°</strong><span>{{(day.min | number:'1.0-0') ?? '—'}}°</span></span>
+              <span class="tile-separator"></span>
+              <span class="tile-rain"><span><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M12 3c-3 4.3-6 8.1-6 11.5a6 6 0 0 0 12 0C18 11.1 15 7.3 12 3Z" fill="none" stroke="currentColor" stroke-width="2"/></svg> {{day.rain_probability === null ? '—' : day.rain_probability+'%'}}</span><span>{{day.rain_mm ?? '—'}} mm</span></span>
+              <span class="rain-track" aria-hidden="true"><span [style.width.%]="day.rain_probability ?? 0"></span></span>
+            </button>
+          }
+        </div>
+      </div>
+      @if(!compact()){
+        <div class="rain-story">
+          <div class="rain-heading"><div class="rain-emblem"><svg viewBox="0 0 24 24" width="23" height="23" aria-hidden="true"><path d="M12 2.5C9 7 5.5 11.6 5.5 15.1a6.5 6.5 0 0 0 13 0C18.5 11.6 15 7 12 2.5Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div><div><span class="section-eyebrow">LLUVIA EN TU PARCELA</span><h3>Precipitación de la semana</h3></div></div>
+          <div class="rain-total"><strong>{{weeklyRain(weather.days) | number:'1.0-1'}} <span>mm</span></strong><small>acumulado previsto</small></div>
+          <div class="rain-bars" role="img" [attr.aria-label]="'Precipitación semanal aproximada: '+(weeklyRain(weather.days) | number:'1.0-1')+' milímetros en total'">
+            @for(day of weather.days.slice(0,7);track day.date){
+              <div class="rain-bar-col"><div class="rain-bar-area"><span [style.height.%]="rainHeight(day.rain_mm,weather.days)"></span></div><small>{{day.date | date:'EEE':'':'es'}}</small></div>
+            }
+          </div>
+        </div>
+      }
+    }@else{<p class="state">Aún no hay días de pronóstico disponibles.</p>}
+    <footer class="weather-footer"><span>Datos de <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo ↗</a></span><span>{{weather.cached ? 'Última consulta guardada' : 'Actualizado'}} · {{weather.fetched_at | date:'d MMM, HH:mm':'-0500':'es'}} (Perú)</span></footer>
+  }
+</section>
