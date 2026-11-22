@@ -94,7 +94,10 @@ def test_photo_validation_and_private_access(client):
     photo_response = client.get(path)
     assert photo_response.headers['content-type'] == 'image/jpeg'
     assert photo_response.headers['cache-control'].startswith('private')
-    assert photo_response.headers['vary'] == 'Cookie'
+    assert {'cookie', 'origin'} <= {
+        value.strip().lower()
+        for value in photo_response.headers['vary'].split(',')
+    }
     assert client.get('/api/plots').headers['cache-control'] == 'no-store' 
     account(client, "other@example.invalid")
     assert client.get(path).status_code == 404
