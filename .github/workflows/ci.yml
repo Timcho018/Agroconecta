@@ -65,3 +65,28 @@ jobs:
             -X POST "${HOOK}&ref=${GITHUB_SHA}" \
             -o /dev/null
           echo "Deploy solicitado para ${GITHUB_SHA}"
+
+  deploy-frontend:
+    needs: [backend, frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: render-frontend-production
+      cancel-in-progress: false
+    steps:
+      - name: Disparar deploy en Render
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}
+        run: |
+          set -euo pipefail
+          if [ -z "$HOOK" ]; then
+            echo "::error::Falta el Repository Secret RENDER_DEPLOY_HOOK_FRONTEND"
+            exit 1
+          fi
+          # El hook ya incluye ?key=...; &ref fija el commit que acaba de pasar el CI.
+          curl --fail --silent --show-error \
+            --connect-timeout 10 --max-time 30 \
+            -X POST "${HOOK}&ref=${GITHUB_SHA}" \
+            -o /dev/null
+          echo "Deploy solicitado para ${GITHUB_SHA}"
