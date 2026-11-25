@@ -29,6 +29,20 @@ BEGIN
       WHEN jsonb_typeof(t.datos_json->'steps') IS DISTINCT FROM 'array' THEN true
       ELSE jsonb_array_length(t.datos_json->'steps')>0 END;
   IF bad>0 THEN RAISE EXCEPTION 'Hay % plantillas de actividad con pasos no definidos por el modelo',bad; END IF;
+  SELECT count(*) INTO bad FROM agroconecta_legacy.plantillas t
+  CROSS JOIN LATERAL jsonb_array_elements(t.datos_json->'steps') step(value)
+  WHERE t.datos_json->>'purpose'='harvest' AND (
+    jsonb_typeof(step.value) IS DISTINCT FROM 'string' OR
+    char_length(btrim(step.value #>> '{}')) NOT BETWEEN 2 AND 64 OR
+    lower(btrim(step.value #>> '{}')) IN ('cosechado','cerrado'));
+  IF bad>0 THEN RAISE EXCEPTION 'Hay % etapas de plantilla con tipo, longitud o nombre inválidos',bad; END IF;
+  SELECT count(*) INTO bad FROM (
+    SELECT t.id,lower(btrim(step.value)) AS name FROM agroconecta_legacy.plantillas t
+    CROSS JOIN LATERAL jsonb_array_elements_text(t.datos_json->'steps') step(value)
+    WHERE t.datos_json->>'purpose'='harvest'
+    GROUP BY t.id,lower(btrim(step.value)) HAVING count(*)>1
+  ) duplicates;
+  IF bad>0 THEN RAISE EXCEPTION 'Hay % etapas de plantilla repetidas sin distinguir mayúsculas',bad; END IF;
 
   -- Rechazar propiedades JSON no mapeadas para impedir pérdidas silenciosas.
   SELECT count(*) INTO bad FROM (
@@ -163,11 +177,21 @@ BEGIN
   -- Cada lote debe tener una secuencia completa y un evento inicial verificable.
   SELECT count(*) INTO bad FROM agroconecta_legacy.cosechas h
   WHERE CASE WHEN jsonb_typeof(h.datos_json->'process_steps') IS DISTINCT FROM 'array' THEN true
-    ELSE jsonb_array_length(h.datos_json->'process_steps') < 2
+    ELSE jsonb_array_length(h.datos_json->'process_steps') NOT BETWEEN 2 AND 12
       OR h.datos_json->'process_steps'->>0 <> 'Cosechado'
       OR h.datos_json->'process_steps'->>(jsonb_array_length(h.datos_json->'process_steps')-1) <> 'Cerrado'
   END;
   IF bad>0 THEN RAISE EXCEPTION 'Hay % lotes sin definición completa de proceso; no se inferirán etapas',bad; END IF;
+  SELECT count(*) INTO bad FROM agroconecta_legacy.cosechas h
+  CROSS JOIN LATERAL jsonb_array_elements(h.datos_json->'process_steps') step(value)
+  WHERE jsonb_typeof(step.value) IS DISTINCT FROM 'string';
+  IF bad>0 THEN RAISE EXCEPTION 'Hay % lotes con nombres de etapa que no son texto',bad; END IF;
+  SELECT count(*) INTO bad FROM (
+    SELECT h.id,lower(btrim(step.value)) AS name FROM agroconecta_legacy.cosechas h
+    CROSS JOIN LATERAL jsonb_array_elements_text(h.datos_json->'process_steps') step(value)
+    GROUP BY h.id,lower(btrim(step.value)) HAVING count(*)>1
+  ) duplicates;
+  IF bad>0 THEN RAISE EXCEPTION 'Hay % lotes con etapas repetidas sin distinguir mayúsculas',bad; END IF;
 
   SELECT count(*) INTO bad FROM agroconecta_legacy.cosechas h
   CROSS JOIN LATERAL jsonb_array_elements(coalesce(
