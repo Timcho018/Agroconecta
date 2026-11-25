@@ -71,6 +71,7 @@ class FarmService:
                 template = self.owned(data, owner, 'templates', values['process_template_id'])
                 if template.get('purpose') != 'harvest':
                     raise HTTPException(422, 'Selecciona una plantilla de procesos válida.')
+                values['process_template_name'] = template.get('name')
                 if values.get('process_steps') is None:
                     values['process_steps'] = list(template.get('steps', []))
             if kind in ("activities", "harvests"):
@@ -89,11 +90,17 @@ class FarmService:
             if kind == "harvests":
                 first = {"stage": "Cosechado", "quantity": values["quantity"], "date": now(), "notes": values["notes"]}
                 steps = values.get('process_steps')
+                crop_record = data['records'].get(plot.get('crop_id')) if plot.get('crop_id') else None
                 # Existing API clients retain the legacy process, while the
                 # constructor sends a snapshot of its individually chosen steps.
                 is_custom = steps is not None
-                record.update(code="LOT-" + record["id"][:8].upper(), stage="Cosechado",
+                # Global uniqueness is enforced by the normalized schema. Twelve
+                # UUID hex characters keep the existing LOT- appearance while
+                # avoiding the 32-bit collision risk of the legacy 8-char code.
+                record.update(code="LOT-" + record["id"][:12].upper(), stage="Cosechado",
                               current_quantity=values["quantity"], crop_id=plot.get("crop_id", ""),
+                              crop_name_historical=crop_record.get('name') if crop_record else None,
+                              variety_historical=crop_record.get('variety') if crop_record else None,
                               stages=[first], process_mode='custom' if is_custom else 'legacy',
                               process_steps=['Cosechado', *(steps if is_custom else
                                               ['Procesamiento','Secado','Almacenado']), 'Cerrado'])
@@ -103,7 +110,7 @@ class FarmService:
             self.audit(data, owner, record, "Actualizado" if old else "Registrado")
             return self.public(record)
         if hasattr(self.store, 'transaction_scoped'):
-            depends = ['crops'] if kind == 'plots' else ['plots', 'templates'] if kind == 'harvests' else ['plots'] if kind == 'activities' else []
+            depends = ['crops'] if kind == 'plots' else ['plots', 'templates', 'crops'] if kind == 'harvests' else ['plots'] if kind == 'activities' else []
             result = self.store.transaction_scoped(owner, [kind, *depends], change)
         else:
             result = self.store.transaction(change)
@@ -149,8 +156,8 @@ class FarmService:
             record.update(stage=values["stage"], current_quantity=values["quantity"], updated_at=now())
             record['stages'].append(event)
             if record.get('process_mode') == 'custom':
-                # Public datos_json is canonical for user-defined steps;
-                # existing constrained SQL stage rows remain untouched.
+                # JsonStore retains this compatibility alias. PostgreSQL maps
+                # the same history into etapas_cosecha for every process type.
                 record['stage_history'] = list(record['stages'])
             self.audit(data, owner, record, "Etapa: " + values["stage"])
             return self.public(record)

@@ -6,7 +6,7 @@ Aplicación web de gestión agrícola para administrar parcelas, cultivos, activ
 
 - Frontend: Angular, TypeScript y SCSS.
 - Backend: FastAPI (Python), organizado en API, servicios y repositorios.
-- Base de datos: PostgreSQL alojado en Supabase, con rutinas almacenadas.
+- Base de datos: PostgreSQL con rutinas almacenadas V20 y 11 tablas relacionales.
 - Imágenes privadas: Supabase Storage.
 - Integraciones externas: iNaturalist y datos meteorológicos.
 
@@ -17,7 +17,7 @@ Registro e inicio de sesión, parcelas, cultivos, calendario y plantillas, clima
 ## Configuración local
 
 1. Crear `backend/.env` a partir de `backend/.env.example`, con datos privados propios.
-2. En Supabase ejecutar `backend/database/EJECUTAR_EN_SUPABASE.sql` solo después de leerlo y respaldar los datos.
+2. Para una base vacía, aplicar `backend/database/05_Modelo_11_Tablas_V20.sql` y luego `backend/database/04_Rutinas_Almacenadas.sql`.
 3. En `backend/`, ejecutar `uv sync` y `uv run uvicorn main:app --port 8010`.
 4. En `frontend/`, ejecutar `npm ci` y `npm start`.
 5. Abrir `http://localhost:4200`.
@@ -48,7 +48,7 @@ El backend incluye `backend/Dockerfile` y `backend/.dockerignore`. En Render:
 
    No definir `PORT` ni `HOST`: Render inyecta `PORT` y el contenedor escucha en `0.0.0.0`.
 
-5. El arranque exige que `backend/database/EJECUTAR_EN_SUPABASE.sql` (rutinas V18) ya esté aplicado en Supabase; si no, el deploy falla con un mensaje explícito.
+5. El backend exige el contrato SQL V20; si no está aplicado, el arranque falla explícitamente.
 6. Verificar: `curl https://<servicio>.onrender.com/health` debe responder `{"status":"ok"}`.
 
 Notas del plan Free: el servicio se suspende tras 15 minutos sin tráfico y la primera petición tarda 30–60 s (cold start). El disco es efímero, por lo que las imágenes se guardan siempre en Supabase Storage.
@@ -57,3 +57,11 @@ Notas del plan Free: el servicio se suspende tras 15 minutos sin tráfico y la p
 
 No publicar `backend/.env`, contraseñas, claves de Supabase o archivos BAT personales.
 El almacenamiento de imágenes privadas se gestiona desde el backend.
+
+## Modelo V20 y migración local
+
+El esquema activo tiene 11 tablas. `backend/database/AgroConecta_Supabase_PostgreSQL.sql`, `EJECUTAR_EN_SUPABASE.sql` y `SOLUCION_ERROR_CREAR_PARCELA.sql` son nombres históricos y ahora se detienen con un error para evitar aplicar V18/V19 por accidente.
+
+Para ensayar una actualización de una copia V18/V19, restaura primero un respaldo en PostgreSQL local aislado. Define `AGRO_MIGRATION_DATABASE_URL` apuntando a `localhost`, `127.0.0.1` o `::1` y ejecuta `python backend/database/migrate_v19_to_v20.py --apply`. El runner no lee `DATABASE_URL`, `.env`, credenciales de Supabase ni Storage; rechaza hosts remotos, conserva el esquema anterior en `agroconecta_legacy` y revierte toda la transacción si falla una comprobación. Se detiene si encuentra propiedades JSON sin mapear, fotos Base64 heredadas o procesos incompletos. No se ha ejecutado sobre Supabase.
+
+No uses el runner con una base de producción. La migración futura a Supabase requiere aprobación explícita, respaldo, ensayo aislado, revisión de las fotos Base64 que bloqueen el proceso y una ventana de corte coordinada.

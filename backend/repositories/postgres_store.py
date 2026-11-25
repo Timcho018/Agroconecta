@@ -36,8 +36,8 @@ class PostgresStore:
             self.pool.open(wait=True)
             with self.pool.connection() as conn, conn.cursor() as cur:
                 version = self._call(cur, 'health')
-                if version.get('version') != 18:
-                    raise RuntimeError('Instala 04_Rutinas_Almacenadas.sql en Supabase antes de iniciar V18.')
+                if version.get('version') != 20:
+                    raise RuntimeError('Instala el esquema V20 y 04_Rutinas_Almacenadas.sql antes de iniciar el backend.')
         except Exception:
             self.close()
             raise
@@ -127,7 +127,7 @@ class PostgresStore:
                 raise RuntimeError('Entidad no admitida')
             data = {key: value for key, value in record.items() if key not in ('photo', 'stages')}
             self._call(cur, 'save', kind=kind, record=data)
-            if kind == 'harvests' and record.get('process_mode') != 'custom':
+            if kind == 'harvests':
                 previous = before['records'].get(record['id'], {}).get('stages', [])
                 current = record.get('stages', [])
                 if current[:len(previous)] != previous:

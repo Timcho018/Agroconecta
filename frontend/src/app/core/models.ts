@@ -6,7 +6,9 @@ export interface Entity {
   soil: string; notes: string; active: boolean; photo_version: string;
   variety: string; cycle_days: number; image_source?: string; image_url?: string; image_credit?: string; image_license?: string; image_taxon_id?: number | null; crop_photo_version?: string; date: string; category: string; status: string;
   quantity: number; current_quantity: number; stage: string; code: string; stages: StageEvent[];
-  process_steps?: string[]; process_mode?: string; purpose?: 'activity'|'harvest'; steps?: string[]; process_template_id?: string;
+  process_steps?: string[]; process_mode?: string; purpose?: 'activity'|'harvest'; steps?: string[];
+  process_template_id?: string; process_template_name?: string;
+  crop_name_historical?: string; variety_historical?: string;
 }
 export interface Summary { active_plots: number; area: number; pending: number; harvest_kg: number; current_kg: number; completed: number }
 export interface ForecastDay { date: string; max: number | null; min: number | null; rain_probability: number | null; rain_mm: number | null; code: number | null }

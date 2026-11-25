@@ -1,4 +1,4 @@
-"""Contrato de rutinas V18: pruebas aisladas, sin credenciales ni Supabase real.
+"""Contrato de rutinas V20: pruebas aisladas, sin credenciales ni Supabase real.
 
 Todas las llamadas de negocio deben ser CALL a una rutina fija; SQL de tablas
 vive en database/04_Rutinas_Almacenadas.sql, no dentro del repositorio Python.
@@ -72,16 +72,20 @@ def store_with_cursor(responses=None):
     return store, cur
 
 
-def test_schema_preserves_all_ten_tables_and_private_photos():
-    script = (ROOT / 'database' / 'AgroConecta_Supabase_PostgreSQL.sql').read_text()
+def test_schema_has_eleven_single_pk_tables_and_private_photos():
+    script = (ROOT / 'database' / '05_Modelo_11_Tablas_V20.sql').read_text()
     tables = {'usuarios', 'sesiones', 'cultivos', 'parcelas', 'plantillas',
-              'actividades', 'cosechas', 'etapas_lote', 'bitacora', 'alertas_revisadas'}
-    assert len(tables) == 10
+              'etapas_plantilla', 'actividades', 'cosechas', 'etapas_cosecha',
+              'bitacora', 'alertas'}
+    assert len(tables) == 11
     for table in tables:
         assert f'CREATE TABLE IF NOT EXISTS public.{table}' in script
         assert f'ALTER TABLE public.{table} ENABLE ROW LEVEL SECURITY' in script
-    assert 'foto_ruta           text' in script and 'foto_jpeg' not in script
-    assert 'FOREIGN KEY (usuario_id, parcela_id)' in script
+    assert 'ruta_fotografia text' in script and 'foto_jpeg' not in script
+    assert 'FOREIGN KEY (id_usuario, id_cultivo)' in script
+    assert 'PRIMARY KEY (' not in script
+    assert 'PRIMARY KEY (' not in script.replace('id_usuario uuid PRIMARY KEY', '')
+    assert 'UNIQUE (id_cosecha, numero_orden)' in script
 
 
 def test_routine_script_exists_and_is_additive():
@@ -90,7 +94,7 @@ def test_routine_script_exists_and_is_additive():
     assert 'CREATE OR REPLACE FUNCTION public.agro_records' in sql
     assert 'CREATE OR REPLACE FUNCTION public.agro_save_record' in sql
     assert 'DROP TABLE' not in sql and 'TRUNCATE' not in sql
-    for table in ('usuarios', 'sesiones', 'parcelas', 'cultivos', 'cosechas', 'actividades'):
+    for table in ('usuarios', 'sesiones', 'parcelas', 'cultivos', 'cosechas', 'actividades', 'etapas_cosecha'):
         assert f'public.{table}' in sql
 
 
@@ -204,6 +208,29 @@ def test_new_stage_is_appended_not_rewritten():
     store._persist(cur, before, after)
     assert [op for op, _ in cur.calls] == ['save', 'stage']
     assert cur.calls[-1][1]['stage'] == stage2
+
+
+def test_custom_stage_history_is_normalized_through_the_same_routine():
+    owner, lid = uuid(), uuid()
+    first = {'stage': 'Cosechado', 'quantity': 40, 'date': '2026-11-01T00:00:00Z'}
+    next_step = {'stage': 'Fermentación', 'quantity': 35, 'date': '2026-11-02T00:00:00Z'}
+    old = {'id': lid, 'owner': owner, 'kind': 'harvests', 'process_mode': 'custom',
+           'process_steps': ['Cosechado', 'Fermentación', 'Cerrado'], 'stages': [first], 'stage_history': [first]}
+    store, cur = store_with_cursor()
+    before, after = store.empty_state(), store.empty_state()
+    before['records'][lid] = copy.deepcopy(old)
+    after['records'][lid] = dict(old, stages=[first, next_step], stage_history=[first, next_step])
+    store._persist(cur, before, after)
+    assert [op for op, _ in cur.calls] == ['save', 'stage']
+    assert cur.calls[-1][1]['stage'] == next_step
+
+
+def test_v20_migration_refuses_remote_hosts_and_reads_only_dedicated_dsn():
+    from database.migrate_v19_to_v20 import validate_database_url
+    assert validate_database_url('postgresql://test@localhost/agro_isolated') == 'localhost'
+    for dsn in ('postgresql://u:p@project.supabase.co/postgres', 'postgresql://u:p@10.0.0.4/agro'):
+        with pytest.raises(ValueError, match='loopback'):
+            validate_database_url(dsn)
 
 
 def test_disallow_stage_rewriting():
