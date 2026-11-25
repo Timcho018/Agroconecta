@@ -110,7 +110,7 @@ class FarmService:
             self.audit(data, owner, record, "Actualizado" if old else "Registrado")
             return self.public(record)
         if hasattr(self.store, 'transaction_scoped'):
-            depends = ['crops'] if kind == 'plots' else ['plots', 'templates'] if kind == 'harvests' else ['plots'] if kind == 'activities' else []
+            depends = ['crops'] if kind == 'plots' else ['plots', 'templates', 'crops'] if kind == 'harvests' else ['plots'] if kind == 'activities' else []
             result = self.store.transaction_scoped(owner, [kind, *depends], change)
         else:
             result = self.store.transaction(change)

@@ -124,12 +124,12 @@ BEGIN
     INSERT INTO public.cultivos(id_cultivo,id_usuario,nombre,variedad,duracion_ciclo_dias,
       observaciones,activo,origen_imagen,url_imagen,credito_imagen,licencia_imagen,
       id_taxon_imagen,ruta_fotografia,version_fotografia)
-    SELECT rid,u.id,r->>'name',coalesce(r->>'variety',''),coalesce((r->>'cycle_days')::integer,0),
+    SELECT rid,u.id_usuario,r->>'name',coalesce(r->>'variety',''),coalesce((r->>'cycle_days')::integer,0),
       coalesce(r->>'notes',''),coalesce((r->>'active')::boolean,true),coalesce(r->>'image_source',''),
       coalesce(r->>'image_url',''),coalesce(r->>'image_credit',''),coalesce(r->>'image_license',''),
       nullif(r->>'image_taxon_id','')::integer,nullif(r->>'crop_photo_path',''),
       nullif(r->>'crop_photo_version','')::uuid
-    FROM public.usuarios u WHERE u.id=uid
+    FROM public.usuarios u WHERE u.id_usuario=uid
     ON CONFLICT(id_cultivo) DO UPDATE SET nombre=excluded.nombre,variedad=excluded.variedad,
       duracion_ciclo_dias=excluded.duracion_ciclo_dias,observaciones=excluded.observaciones,
       activo=excluded.activo,origen_imagen=excluded.origen_imagen,url_imagen=excluded.url_imagen,
@@ -143,11 +143,11 @@ BEGIN
     INSERT INTO public.parcelas(id_parcela,id_usuario,id_cultivo,nombre,ubicacion,
       superficie_hectareas,latitud,longitud,tipo_suelo,observaciones,activa,
       ruta_fotografia,version_fotografia)
-    SELECT rid,u.id,plot,r->>'name',r->>'location',(r->>'area')::numeric,
+    SELECT rid,u.id_usuario,plot,r->>'name',r->>'location',(r->>'area')::numeric,
       (r->>'latitude')::numeric,(r->>'longitude')::numeric,coalesce(r->>'soil',''),
       coalesce(r->>'notes',''),coalesce((r->>'active')::boolean,true),
       nullif(r->>'photo_path',''),nullif(r->>'photo_version','')::uuid
-    FROM public.usuarios u WHERE u.id=uid
+    FROM public.usuarios u WHERE u.id_usuario=uid
     ON CONFLICT(id_parcela) DO UPDATE SET id_cultivo=excluded.id_cultivo,nombre=excluded.nombre,
       ubicacion=excluded.ubicacion,superficie_hectareas=excluded.superficie_hectareas,
       latitud=excluded.latitud,longitud=excluded.longitud,tipo_suelo=excluded.tipo_suelo,
@@ -166,10 +166,10 @@ BEGIN
     END IF;
     INSERT INTO public.plantillas(id_plantilla,id_usuario,nombre,tipo_plantilla,
       titulo_actividad,categoria,descripcion)
-    SELECT rid,u.id,r->>'name',process_type,
+    SELECT rid,u.id_usuario,r->>'name',process_type,
       CASE WHEN process_type='actividad' THEN r->>'title' ELSE NULL END,
       CASE WHEN process_type='actividad' THEN coalesce(r->>'category','Otra') ELSE NULL END,
-      coalesce(r->>'notes','') FROM public.usuarios u WHERE u.id=uid
+      coalesce(r->>'notes','') FROM public.usuarios u WHERE u.id_usuario=uid
     ON CONFLICT(id_plantilla) DO UPDATE SET nombre=excluded.nombre,
       tipo_plantilla=excluded.tipo_plantilla,titulo_actividad=excluded.titulo_actividad,
       categoria=excluded.categoria,descripcion=excluded.descripcion,fecha_actualizacion=now()

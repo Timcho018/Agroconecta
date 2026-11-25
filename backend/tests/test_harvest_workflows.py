@@ -3,6 +3,7 @@ import secrets
 from fastapi.testclient import TestClient
 from main import create_app
 from repositories.postgres_store import PostgresStore
+from services.farm import FarmService
 
 
 def client_for(tmp_path):
@@ -109,6 +110,24 @@ def test_harvest_keeps_crop_name_and_variety_snapshot(tmp_path):
         assert edited.status_code==200
         saved=c.get('/api/harvests/'+lot['id']).json()
         assert saved['crop_name_historical']=='Cacao' and saved['variety_historical']=='Criollo'
+
+
+def test_postgres_harvest_snapshot_loads_crop_dependency():
+    owner='owner-1'; plot_id='plot-1'; crop_id='crop-1'
+    class CapturingStore:
+        def transaction_scoped(self, scoped_owner, kinds, operation):
+            self.kinds=kinds
+            data={'records':{
+                plot_id:{'id':plot_id,'owner':owner,'kind':'plots','crop_id':crop_id,'active':True},
+                crop_id:{'id':crop_id,'owner':owner,'kind':'crops','name':'Cacao','variety':'Criollo'},
+            },'events':[]}
+            return operation(data)
+
+    store=CapturingStore()
+    lot=FarmService(store).save(owner,'harvests',{
+        'plot_id':plot_id,'date':'2026-11-24','quantity':25,'notes':'','process_steps':[]})
+    assert {'harvests','plots','templates','crops'} <= set(store.kinds)
+    assert lot['crop_name_historical']=='Cacao' and lot['variety_historical']=='Criollo'
 
 
 def test_postgres_custom_mode_uses_existing_json_columns():

@@ -124,8 +124,9 @@ def migrate(dsn: str) -> dict[str, int]:
             missing = set(LEGACY_TABLES) - existing
             if missing:
                 raise RuntimeError("No se encontró el esquema V18/V19 esperado; faltan: " + ", ".join(sorted(missing)))
-            if set(TARGET_TABLES) & existing:
-                raise RuntimeError("Ya hay nombres de tablas V20 en public; no se sobrescribirán.")
+            v20_only = set(TARGET_TABLES) - set(LEGACY_TABLES)
+            if v20_only & existing:
+                raise RuntimeError("Ya hay tablas exclusivas de V20 en public; no se sobrescribirán.")
 
             cursor.execute("CREATE SCHEMA agroconecta_legacy")
             for table in LEGACY_TABLES:

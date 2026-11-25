@@ -335,9 +335,7 @@ LEFT JOIN LATERAL (
 ) hist ON h.datos_json->>'process_mode'='custom'
 LEFT JOIN agroconecta_legacy.etapas_lote legacy
   ON legacy.cosecha_id=h.id AND legacy.usuario_id=h.usuario_id AND legacy.orden=plan.ordinality
-  AND h.datos_json->>'process_mode'<>'custom'
-WHERE (h.datos_json->>'process_mode'='custom' AND hist.event IS NOT NULL)
-   OR (h.datos_json->>'process_mode'<>'custom' AND legacy.cosecha_id IS NOT NULL);
+  AND h.datos_json->>'process_mode'<>'custom';
 
 INSERT INTO public.bitacora(id_bitacora,id_usuario,id_registro_afectado,id_parcela_referencia,
   tipo_entidad,nombre_registro,accion_realizada,fecha_registro)
