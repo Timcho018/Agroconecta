@@ -158,7 +158,7 @@ export class Production implements OnInit {
       if(!Number.isFinite(this.quantity())||this.quantity()<=0||this.quantity()>100000000){this.formError.set('Escribe la cantidad real cosechada en kilogramos.');return;}
     }else if(this.templateName().trim().length<2 || !this.steps().length){this.formError.set('Escribe el nombre de la plantilla y añade al menos una etapa.');return;}
     this.busy.set(true);try{if(this.dialog()==='harvest'){
-      await this.api.save('harvests',{plot_id:this.plotId(),date:this.date(),quantity:this.quantity(),notes:this.notes(),process_steps:[...this.steps()]});
+      await this.api.save('harvests',{plot_id:this.plotId(),date:this.date(),quantity:this.quantity(),notes:this.notes(),process_steps:[...this.steps()],process_template_id:this.templateChoice()||''});
       this.notice.set('Cosecha registrada. Ya puedes seguir cada etapa de tu lote.');this.view.set('lots');
     }else{
       const name=this.templateName().trim();await this.api.save('templates',{name,title:name,purpose:'harvest',steps:[...this.steps()],category:'Poscosecha',notes:''},this.editingTemplate()?.id);
