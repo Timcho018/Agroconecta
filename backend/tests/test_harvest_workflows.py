@@ -34,6 +34,7 @@ def test_custom_process_full_flow_and_template_snapshot(tmp_path):
             'quantity':500,'process_template_id':tpl['id']})
         assert response.status_code==201,response.text
         lot=response.json();assert lot['process_steps']==['Cosechado','Fermentación','Secado','Almacenamiento','Cerrado']
+        assert lot['process_template_id']==tpl['id'] and lot['process_template_name']==tpl['name']
         assert lot['stage']=='Cosechado' and len(lot['stages'])==1
         path='/api/harvests/'+lot['id']+'/stages'
         assert c.post(path,json={'stage':'Secado','quantity':490}).status_code==409
@@ -88,6 +89,26 @@ def test_legacy_process_still_supported(tmp_path):
         lot=c.post('/api/harvests',json={'plot_id':p['id'],'date':'2026-11-01','quantity':50}).json()
         assert lot['process_mode']=='legacy'
         assert c.post('/api/harvests/'+lot['id']+'/stages',json={'stage':'Procesamiento','quantity':45}).status_code==200
+
+
+def test_harvest_keeps_crop_name_and_variety_snapshot(tmp_path):
+    with client_for(tmp_path) as c:
+        plot=setup(c)
+        crop=c.post('/api/crops',json={'name':'Cacao','variety':'Criollo','cycle_days':120,
+            'notes':'','active':True}).json()
+        updated=c.put('/api/plots/'+plot['id'],json={'name':plot['name'],'location':plot['location'],
+            'area':plot['area'],'latitude':plot['latitude'],'longitude':plot['longitude'],
+            'crop_id':crop['id'],'soil':'','notes':'','active':True})
+        assert updated.status_code==200
+        lot=c.post('/api/harvests',json={'plot_id':plot['id'],'date':'2026-11-01',
+            'quantity':25,'process_steps':[]}).json()
+        assert lot['crop_name_historical']=='Cacao' and lot['variety_historical']=='Criollo'
+        edited=c.put('/api/crops/'+crop['id'],json={'name':'Cacao actualizado','variety':'Nuevo',
+            'cycle_days':120,'notes':'','active':True,'image_source':'','image_url':'',
+            'image_credit':'','image_license':'','image_taxon_id':None})
+        assert edited.status_code==200
+        saved=c.get('/api/harvests/'+lot['id']).json()
+        assert saved['crop_name_historical']=='Cacao' and saved['variety_historical']=='Criollo'
 
 
 def test_postgres_custom_mode_uses_existing_json_columns():
